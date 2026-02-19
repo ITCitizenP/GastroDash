@@ -188,3 +188,4 @@ Falls alte Werte wie `OPEN` in Bestellungen existieren, normalisiert der Server 
 ## Lizenz
 Privates/Projektinternes Repository. Lizenz nach Bedarf ergaenzen.
 "# GastroDash" 
+# GastroDash
