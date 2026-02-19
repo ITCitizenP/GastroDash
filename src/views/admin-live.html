@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bestellungen verwalten</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Sora", "sans-serif"] },
+            colors: { panel: "#111827", panelSoft: "#1f2937", line: "#374151", accent: "#0ea5e9" }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="flex min-h-screen flex-col bg-slate-950 text-slate-100">
+    <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_10%,#1f2937_0%,transparent_45%),radial-gradient(circle_at_90%_20%,#7c2d12_0%,transparent_35%),linear-gradient(#020617,#0f172a)]"></div>
+
+    <main class="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">
+      <section id="loginSection" class="mx-auto max-w-md rounded-xl border border-line bg-panel p-6">
+        <h1 class="mb-4 text-2xl font-semibold">Live Board Login</h1>
+        <form id="liveLoginForm" class="space-y-3">
+          <input id="liveUsername" class="w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Benutzername" required />
+          <input id="livePassword" type="password" class="w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Passwort" required />
+          <button class="w-full rounded-lg bg-accent px-4 py-2 font-semibold">Anmelden</button>
+        </form>
+      </section>
+
+      <section id="liveSection" class="hidden">
+        <header class="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p id="liveSiteName" class="text-xs uppercase tracking-[0.2em] text-sky-300">GastroDash</p>
+            <h1 class="text-3xl font-bold">Bestellungen verwalten</h1>
+          </div>
+          <div class="flex gap-2">
+            <button id="openProductOverlayBtn" class="rounded-lg border border-line px-3 py-2 text-sm font-semibold hover:bg-panelSoft">Short Produkt Settings</button>
+            <a id="adminBackLink" href="/admin" class="hidden rounded-lg border border-line px-3 py-2 text-sm hover:bg-panelSoft">Zum Adminbereich</a>
+            <button id="liveLogoutBtn" class="rounded-lg border border-line px-3 py-2 text-sm hover:bg-panelSoft">Logout</button>
+          </div>
+        </header>
+
+        <div id="message" class="mb-4 hidden rounded-lg px-4 py-3 text-sm"></div>
+
+        <section class="mb-5 rounded-xl border border-line bg-panel p-4">
+          <div class="grid gap-3 md:grid-cols-3">
+            <label class="text-sm">Tisch
+              <select id="tableFilter" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2"></select>
+            </label>
+            <label class="text-sm md:col-span-2">Globale Suche (Name / Details / Tisch / Produkt)
+              <input id="globalSearch" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="z. B. Max, VIP, Tisch 2, Cola" />
+            </label>
+          </div>
+          <label class="mt-3 inline-flex items-center gap-2 text-sm"><input id="showCompleted" type="checkbox" /> Abgeschlossene anzeigen</label>
+        </section>
+
+        <section class="mb-6">
+          <h2 class="mb-3 text-xl font-semibold">Noch offen</h2>
+          <div id="liveOrders" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3"></div>
+        </section>
+
+        <section id="completedWrap" class="hidden">
+          <h2 class="mb-3 text-xl font-semibold">Abgeschlossene</h2>
+          <div id="completedOrders" class="grid gap-3 md:grid-cols-2 xl:grid-cols-3"></div>
+        </section>
+      </section>
+    </main>
+
+    <div id="deleteModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 p-4">
+      <div class="w-full max-w-md rounded-xl border border-line bg-panel p-5">
+        <h3 class="text-lg font-semibold">Abgeschlossene Bestellung löschen</h3>
+        <form id="deleteForm" class="mt-3 space-y-3">
+          <input id="deletePassword" type="password" class="w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Passwort" />
+          <div class="flex gap-2">
+            <button class="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold">Löschen</button>
+            <button id="closeDeleteBtn" type="button" class="rounded-lg border border-line px-4 py-2 text-sm">Abbrechen</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="productOverlay" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 p-4">
+      <div class="w-full max-w-xl rounded-xl border border-line bg-panel p-5">
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <h3 class="text-lg font-semibold">Short Produkt Settings</h3>
+          <button id="closeProductOverlayBtn" type="button" class="rounded-lg border border-line px-3 py-1 text-sm">Schließen</button>
+        </div>
+        <div class="space-y-3">
+          <label class="block text-sm">
+            Produkt
+            <select id="productOverlaySelect" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2"></select>
+          </label>
+          <div id="productOverlayStatus" class="rounded-lg border border-line bg-panelSoft p-3 text-sm text-slate-300">Status wird geladen...</div>
+          <div class="flex flex-wrap gap-2">
+            <button id="productSetActiveBtn" type="button" class="rounded-lg border border-emerald-700 px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-900/30">Aktivieren</button>
+            <button id="productSetInactiveBtn" type="button" class="rounded-lg border border-amber-700 px-3 py-2 text-sm text-amber-200 hover:bg-amber-900/30">Deaktivieren</button>
+            <button id="productSetSoldOutBtn" type="button" class="rounded-lg border border-red-700 px-3 py-2 text-sm text-red-200 hover:bg-red-900/30">Ausverkauft setzen</button>
+            <button id="productSetAvailableBtn" type="button" class="rounded-lg border border-sky-700 px-3 py-2 text-sm text-sky-200 hover:bg-sky-900/30">Ausverkauft aufheben</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="border-t border-line/50 bg-black/25 px-4 py-4 text-center text-xs text-slate-300">
+      GastroDash™ - Live Bestellungen • Verwaltung • Statistics | Copyright von Citizen.P®
+      <a href="https://citizenp.me/coding" target="_blank" rel="noreferrer" class="ml-1 text-sky-300 underline">citizenp.me/coding</a>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const loginSection = document.getElementById("loginSection");
+      const liveSection = document.getElementById("liveSection");
+      const messageEl = document.getElementById("message");
+      let deleteOrderId = null;
+      let liveRole = null;
+      let liveProducts = [];
+
+      function notice(text, ok) {
+        messageEl.textContent = text;
+        messageEl.className = `mb-4 rounded-lg px-4 py-3 text-sm ${ok ? "bg-emerald-900/60 text-emerald-100" : "bg-red-900/60 text-red-100"}`;
+        messageEl.classList.remove("hidden");
+      }
+
+      function banner(order) {
+        const parts = [];
+        if (order.customerName) parts.push(`Name: ${order.customerName}`);
+        if (order.tableLabel) {
+          const t = String(order.tableLabel).trim();
+          const m = t.match(/^tisch\s*(\d+)$/i) || t.match(/^(\d+)$/);
+          if (m) parts.push(`Tisch: ${m[1]}`);
+          else parts.push(`Details: ${t}`);
+        }
+        if (order.note) parts.push(`Details: ${order.note}`);
+        return parts.length ? parts.join(" | ") : "Ohne Zusatzangaben";
+      }
+
+      function renderOrders(target, list, completed) {
+        target.innerHTML = "";
+        if (!list.length) {
+          target.innerHTML = `<div class="rounded-lg border border-line bg-panelSoft p-4">Keine ${completed ? "abgeschlossenen" : "offenen"} Bestellungen.</div>`;
+          return;
+        }
+
+        for (const order of list) {
+          const card = document.createElement("article");
+          card.className = `rounded-xl border p-4 ${completed ? "border-emerald-700/60 bg-emerald-950/20" : "border-red-700/60 bg-red-950/20"}`;
+          card.innerHTML = `
+            <div class="mb-2 rounded-lg border border-line bg-panelSoft p-2 text-sm font-semibold">${banner(order)}</div>
+            <div class="mb-2 flex items-center justify-between"><b>Bestellung #${order.id}</b><span class="text-xs">${completed ? "Abgeschlossen" : "Noch offen"}</span></div>
+            <p class="mb-2 text-xs text-slate-400">${new Date(order.createdAt).toLocaleString("de-DE")}</p>
+            <ul class="mb-3 text-sm"></ul>
+            <div class="flex gap-2"></div>
+          `;
+
+          const listEl = card.querySelector("ul");
+          order.items.forEach((item) => {
+            const li = document.createElement("li");
+            li.textContent = `${item.quantity} x ${item.name}`;
+            listEl.appendChild(li);
+          });
+
+          const actions = card.querySelector("div:last-child");
+          if (!completed) {
+            const doneBtn = document.createElement("button");
+            doneBtn.className = "rounded-lg bg-emerald-700 px-3 py-2 text-sm";
+            doneBtn.textContent = "Als abgeschlossen markieren";
+            doneBtn.onclick = async () => {
+              await fetch(`/api/live/orders/${order.id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "ARCHIVE" })
+              });
+              loadOrders();
+            };
+            actions.appendChild(doneBtn);
+          } else {
+            const restoreBtn = document.createElement("button");
+            restoreBtn.className = "rounded-lg bg-amber-600 px-3 py-2 text-sm";
+            restoreBtn.textContent = "Zurück auf Live";
+            restoreBtn.onclick = async () => {
+              await fetch(`/api/live/orders/${order.id}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status: "LIVE" })
+              });
+              loadOrders();
+            };
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "rounded-lg border border-red-700 px-3 py-2 text-sm text-red-200";
+            deleteBtn.textContent = "Löschen";
+            deleteBtn.onclick = () => {
+              deleteOrderId = order.id;
+              document.getElementById("deletePassword").value = "";
+              document.getElementById("deleteModal").classList.remove("hidden");
+              document.getElementById("deleteModal").classList.add("flex");
+            };
+
+            actions.appendChild(restoreBtn);
+            actions.appendChild(deleteBtn);
+          }
+          target.appendChild(card);
+        }
+      }
+
+      function selectedProduct() {
+        const id = Number(document.getElementById("productOverlaySelect").value || 0);
+        return liveProducts.find((p) => p.id === id) || null;
+      }
+
+      function renderProductOverlayStatus() {
+        const product = selectedProduct();
+        const statusEl = document.getElementById("productOverlayStatus");
+        const btnActive = document.getElementById("productSetActiveBtn");
+        const btnInactive = document.getElementById("productSetInactiveBtn");
+        const btnSoldOut = document.getElementById("productSetSoldOutBtn");
+        const btnAvailable = document.getElementById("productSetAvailableBtn");
+        if (!product) {
+          statusEl.textContent = "Bitte ein Produkt auswählen.";
+          btnActive.classList.remove("hidden");
+          btnInactive.classList.remove("hidden");
+          btnSoldOut.classList.remove("hidden");
+          btnAvailable.classList.remove("hidden");
+          return;
+        }
+        statusEl.textContent = `${product.name} | Aktiv: ${product.isActive ? "Ja" : "Nein"} | Ausverkauft: ${product.isSoldOut ? "Ja" : "Nein"}`;
+        btnActive.classList.toggle("hidden", product.isActive);
+        btnInactive.classList.toggle("hidden", !product.isActive);
+        btnSoldOut.classList.toggle("hidden", product.isSoldOut);
+        btnAvailable.classList.toggle("hidden", !product.isSoldOut);
+      }
+
+      function renderProductOverlaySelect() {
+        const select = document.getElementById("productOverlaySelect");
+        const prev = select.value;
+        select.innerHTML = "";
+        for (const p of liveProducts) {
+          const option = document.createElement("option");
+          option.value = String(p.id);
+          option.textContent = p.name;
+          select.appendChild(option);
+        }
+        if ([...select.options].some((o) => o.value === prev)) {
+          select.value = prev;
+        }
+        renderProductOverlayStatus();
+      }
+
+      async function patchSelectedProduct(data) {
+        const product = selectedProduct();
+        if (!product) {
+          notice("Bitte ein Produkt auswählen.", false);
+          return;
+        }
+        const res = await fetch(`/api/live/products/${product.id}/quick`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const body = await res.json();
+        if (!res.ok) {
+          notice(body.error || "Produktstatus konnte nicht geändert werden.", false);
+          return;
+        }
+        await loadProducts();
+        notice(`Produkt ${product.name} aktualisiert.`, true);
+      }
+
+      async function loadConfig() {
+        const r = await fetch("/api/live/config");
+        if (!r.ok) {
+          showLoggedOut();
+          return;
+        }
+        const config = await r.json();
+        document.getElementById("liveSiteName").textContent = config.siteName || "GastroDash";
+
+        const select = document.getElementById("tableFilter");
+        const prev = select.value;
+        select.innerHTML = '<option value="">Alle Tische</option>';
+        for (let i = 1; i <= config.tableCount; i += 1) {
+          const option = document.createElement("option");
+          option.value = String(i);
+          option.textContent = `Tisch ${i}`;
+          select.appendChild(option);
+        }
+        if ([...select.options].some((o) => o.value === prev)) {
+          select.value = prev;
+        }
+      }
+
+      async function loadProducts() {
+        const r = await fetch("/api/live/products");
+        if (!r.ok) return;
+        liveProducts = await r.json();
+        renderProductOverlaySelect();
+      }
+
+      async function loadOrders() {
+        const q = encodeURIComponent(document.getElementById("globalSearch").value.trim());
+        const table = encodeURIComponent(document.getElementById("tableFilter").value || "");
+
+        const liveRes = await fetch(`/api/live/orders?status=LIVE&q=${q}&table=${table}`);
+        if (liveRes.status === 401) {
+          showLoggedOut();
+          return;
+        }
+        renderOrders(document.getElementById("liveOrders"), await liveRes.json(), false);
+
+        const showCompleted = document.getElementById("showCompleted").checked;
+        const completedWrap = document.getElementById("completedWrap");
+        completedWrap.classList.toggle("hidden", !showCompleted);
+        if (!showCompleted) {
+          document.getElementById("completedOrders").innerHTML = "";
+          return;
+        }
+
+        const completedRes = await fetch(`/api/live/orders?status=ARCHIVE&q=${q}&table=${table}`);
+        renderOrders(document.getElementById("completedOrders"), await completedRes.json(), true);
+      }
+
+      function showLoggedOut() {
+        loginSection.classList.remove("hidden");
+        liveSection.classList.add("hidden");
+      }
+
+      function showLoggedIn(role) {
+        liveRole = role;
+        loginSection.classList.add("hidden");
+        liveSection.classList.remove("hidden");
+        document.getElementById("adminBackLink").classList.toggle("hidden", role !== "ADMIN");
+      }
+
+      async function checkLiveAuth() {
+        const r = await fetch("/api/live/me");
+        if (!r.ok) {
+          showLoggedOut();
+          return;
+        }
+        const me = await r.json();
+        showLoggedIn(me.role);
+        await Promise.all([loadConfig(), loadOrders(), loadProducts()]);
+      }
+
+      document.getElementById("liveLoginForm").onsubmit = async (event) => {
+        event.preventDefault();
+        const response = await fetch("/api/live/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("liveUsername").value,
+            password: document.getElementById("livePassword").value
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          alert(data.error || "Login fehlgeschlagen");
+          return;
+        }
+        showLoggedIn(data.role);
+        await Promise.all([loadConfig(), loadOrders(), loadProducts()]);
+      };
+
+      document.getElementById("liveLogoutBtn").onclick = async () => {
+        await fetch("/api/live/logout", { method: "POST" });
+        showLoggedOut();
+      };
+
+      document.getElementById("openProductOverlayBtn").onclick = () => {
+        document.getElementById("productOverlay").classList.remove("hidden");
+        document.getElementById("productOverlay").classList.add("flex");
+        renderProductOverlaySelect();
+      };
+      document.getElementById("closeProductOverlayBtn").onclick = () => {
+        document.getElementById("productOverlay").classList.add("hidden");
+        document.getElementById("productOverlay").classList.remove("flex");
+      };
+      document.getElementById("productOverlaySelect").addEventListener("change", renderProductOverlayStatus);
+      document.getElementById("productSetActiveBtn").onclick = () => patchSelectedProduct({ isActive: true });
+      document.getElementById("productSetInactiveBtn").onclick = () => patchSelectedProduct({ isActive: false });
+      document.getElementById("productSetSoldOutBtn").onclick = () => patchSelectedProduct({ isSoldOut: true });
+      document.getElementById("productSetAvailableBtn").onclick = () => patchSelectedProduct({ isSoldOut: false });
+
+      document.getElementById("globalSearch").addEventListener("input", loadOrders);
+      document.getElementById("tableFilter").addEventListener("change", loadOrders);
+      document.getElementById("showCompleted").addEventListener("change", loadOrders);
+
+      document.getElementById("closeDeleteBtn").onclick = () => {
+        deleteOrderId = null;
+        document.getElementById("deleteModal").classList.add("hidden");
+        document.getElementById("deleteModal").classList.remove("flex");
+      };
+
+      document.getElementById("deleteForm").onsubmit = async (event) => {
+        event.preventDefault();
+        if (!deleteOrderId) return;
+
+        const response = await fetch(`/api/live/orders/${deleteOrderId}`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: document.getElementById("deletePassword").value })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          notice(data.error || "Löschen fehlgeschlagen", false);
+          return;
+        }
+
+        deleteOrderId = null;
+        document.getElementById("deleteModal").classList.add("hidden");
+        document.getElementById("deleteModal").classList.remove("flex");
+        notice("Abgeschlossene Bestellung gelöscht", true);
+        loadOrders();
+      };
+
+      socket.on("orders:changed", loadOrders);
+      socket.on("settings:changed", loadConfig);
+      socket.on("products:changed", loadProducts);
+
+      checkLiveAuth();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - GastroDash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Sora", "sans-serif"] },
+            colors: { panel: "#111827", panelSoft: "#1f2937", line: "#374151", accent: "#0ea5e9" }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="flex min-h-screen flex-col bg-slate-950 text-slate-100">
+    <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,#0b1f35_0%,transparent_45%),radial-gradient(circle_at_85%_15%,#12385f_0%,transparent_35%),linear-gradient(#020617,#06152b)]"></div>
+    <main class="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">
+      <div id="message" class="mb-4 hidden rounded-lg px-4 py-3 text-sm"></div>
+
+      <section id="loginSection" class="mx-auto max-w-md rounded-xl border border-line bg-panel p-6">
+        <h1 class="mb-4 text-2xl font-semibold">Admin Login</h1>
+        <form id="loginForm" class="space-y-3">
+          <input id="username" class="w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Benutzername" required />
+          <input id="password" type="password" class="w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Passwort" required />
+          <button class="w-full rounded-lg bg-accent px-4 py-2 font-semibold">Anmelden</button>
+        </form>
+      </section>
+
+      <section id="adminSection" class="hidden grid gap-4 lg:grid-cols-[240px_1fr]">
+        <aside class="rounded-xl border border-line bg-panel p-4">
+          <p class="mb-3 text-xs uppercase tracking-[0.2em] text-sky-300">Admin Menü</p>
+          <nav class="space-y-2 text-sm">
+            <button class="menu-btn w-full rounded-lg border border-line px-3 py-2 text-left" data-view="product-list">Produktliste</button>
+            <button class="menu-btn w-full rounded-lg border border-line px-3 py-2 text-left" data-view="product-create">Produkt erstellen</button>
+            <a href="/admin/live" class="block w-full rounded-lg border border-line px-3 py-2 text-left hover:bg-panelSoft">Bestellungen verwalten</a>
+            <button class="menu-btn w-full rounded-lg border border-line px-3 py-2 text-left" data-view="stats">Statistiken</button>
+            <button class="menu-btn w-full rounded-lg border border-line px-3 py-2 text-left" data-view="settings">Einstellungen</button>
+          </nav>
+          <button id="logoutBtn" class="mt-6 w-full rounded-lg border border-line px-3 py-2 text-sm">Logout</button>
+        </aside>
+
+        <div class="space-y-5">
+          <section id="view-product-list" class="view-section rounded-xl border border-line bg-panel p-5">
+            <h2 class="mb-3 text-xl font-semibold">Produktliste</h2>
+            <p class="mb-3 text-sm text-slate-300">Schnellaktionen werden dynamisch angezeigt. Nur sinnvolle Buttons pro Produkt sind sichtbar.</p>
+            <div class="max-h-[62vh] overflow-auto rounded-lg border border-line">
+              <table class="w-full min-w-[980px] text-left text-sm">
+                <thead class="bg-panelSoft text-slate-300">
+                  <tr>
+                    <th class="px-3 py-2">Produkt</th>
+                    <th class="px-3 py-2">Kategorie</th>
+                    <th class="px-3 py-2">Bild</th>
+                    <th class="px-3 py-2">Limit</th>
+                    <th class="px-3 py-2">Status</th>
+                    <th class="px-3 py-2">Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTable"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="view-product-create" class="view-section hidden rounded-xl border border-line bg-panel p-5">
+            <h2 class="mb-3 text-xl font-semibold">Produkt erstellen / bearbeiten</h2>
+            <form id="productForm" class="space-y-3 rounded-xl border border-line bg-panelSoft p-4">
+              <input id="productId" type="hidden" />
+              <label class="block text-sm">Name
+                <input id="productName" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" placeholder="z. B. Cola 0,33l" required />
+              </label>
+              <label class="block text-sm">Kategorie (bereits vorhanden)
+                <select id="productCategorySelect" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2"></select>
+              </label>
+              <label class="block text-sm">Neue Kategorie (optional)
+                <input id="productCategoryCustom" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" placeholder="z. B. Cocktails" />
+              </label>
+              <label class="block text-sm">Preis
+                <input id="productPrice" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+              </label>
+              <label class="block text-sm">Bestelllimit pro Produkt
+                <input id="productOrderLimit" type="number" min="1" step="1" value="10" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+              </label>
+              <label class="block text-sm">Sortierung
+                <input id="productSortOrder" type="number" value="0" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+              </label>
+              <label class="block text-sm">Bild-URL
+                <input id="productImageUrl" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" placeholder="https://..." />
+              </label>
+              <label class="block text-sm">Bild-Upload
+                <input id="productImageUpload" type="file" accept="image/png,image/jpeg,image/webp" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+              </label>
+              <div class="flex flex-wrap gap-4 text-sm">
+                <label><input id="uploadWins" type="checkbox" checked /> Upload priorisieren</label>
+                <label><input id="productShowPrice" type="checkbox" checked /> Preis anzeigen</label>
+                <label><input id="productIsActive" type="checkbox" checked /> Aktiv</label>
+                <label><input id="productIsSoldOut" type="checkbox" /> Ausverkauft</label>
+              </div>
+              <div class="flex gap-2">
+                <button class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold">Produkt speichern</button>
+                <button id="resetProductBtn" type="button" class="rounded-lg border border-line px-4 py-2 text-sm">Zurücksetzen</button>
+              </div>
+            </form>
+          </section>
+
+          <section id="view-stats" class="view-section hidden rounded-xl border border-line bg-panel p-5">
+            <h2 class="mb-4 text-xl font-semibold">Statistiken</h2>
+            <div id="statsSummary" class="mb-4 grid gap-3 md:grid-cols-5"></div>
+            <div class="mb-4 rounded-lg border border-line bg-panelSoft p-3">
+              <h3 class="mb-2 text-lg font-semibold">Top verkauft</h3>
+              <div id="statsTopProducts" class="grid gap-2 md:grid-cols-2"></div>
+            </div>
+            <div class="mb-4 rounded-lg border border-line bg-panelSoft p-3">
+              <h3 class="mb-2 text-lg font-semibold">Bestellungen pro Tag (letzte 14 Tage)</h3>
+              <div id="statsPerDay" class="grid gap-2 md:grid-cols-2"></div>
+            </div>
+            <div class="rounded-lg border border-line bg-panelSoft p-3">
+              <h3 class="mb-2 text-lg font-semibold">Zuletzt bearbeitete Bestellungen</h3>
+              <div class="max-h-[45vh] overflow-auto">
+                <table class="w-full min-w-[880px] text-left text-sm">
+                  <thead>
+                    <tr class="text-slate-300"><th>ID</th><th>Status</th><th>Name</th><th>Tisch</th><th>Artikel</th><th>Dauer (min)</th><th>Zeit</th></tr>
+                  </thead>
+                  <tbody id="statsOrdersTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <section id="view-settings" class="view-section hidden rounded-xl border border-line bg-panel p-5">
+            <h2 class="mb-4 text-xl font-semibold">Einstellungen</h2>
+            <form id="settingsForm" class="grid gap-3 md:grid-cols-2">
+              <label class="text-sm">Seiten Name
+                <input id="siteName" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" />
+              </label>
+              <label class="text-sm">Seiten Titel
+                <input id="siteTitle" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" />
+              </label>
+              <label class="text-sm md:col-span-2">Seiten Beschreibung
+                <input id="siteDescription" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" />
+              </label>
+              <label class="text-sm">Tischanzahl
+                <input id="tableCount" type="number" min="1" max="500" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" />
+              </label>
+              <label class="text-sm">Globales Produktlimit
+                <input id="productLimit" type="number" min="1" max="5000" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" />
+              </label>
+              <label class="text-sm md:col-span-2">Passwort für Löschen abgeschlossener Bestellungen
+                <input id="archivePasswordInput" type="password" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Neues Passwort" />
+              </label>
+              <div class="md:col-span-2">
+                <button class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold">Allgemeine Einstellungen speichern</button>
+              </div>
+            </form>
+
+            <div class="mt-6 rounded-xl border border-line bg-panelSoft p-4">
+              <h3 class="mb-3 text-lg font-semibold">Wartung</h3>
+              <div class="flex flex-wrap gap-2">
+                <button id="clearProductsBtn" class="rounded-lg border border-red-700 px-3 py-2 text-sm text-red-200">Alle Produkte löschen</button>
+                <button id="clearArchiveBtn" class="rounded-lg border border-amber-700 px-3 py-2 text-sm text-amber-200">Alle Archiv-Bestellungen löschen</button>
+              </div>
+            </div>
+
+            <form id="usersForm" class="mt-6 rounded-xl border border-line bg-panelSoft p-4">
+              <h3 class="mb-3 text-lg font-semibold">User Einstellungen</h3>
+              <div class="grid gap-3 md:grid-cols-2">
+                <label class="text-sm">Admin Benutzername
+                  <input id="adminUsername" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+                </label>
+                <label class="text-sm">Admin Passwort
+                  <input id="adminPassword" type="password" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+                </label>
+                <label class="text-sm">Manager Benutzername
+                  <input id="managerUsername" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+                </label>
+                <label class="text-sm">Manager Passwort
+                  <input id="managerPassword" type="password" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+                </label>
+              </div>
+              <button class="mt-3 rounded-lg bg-accent px-4 py-2 text-sm font-semibold">User Einstellungen speichern</button>
+            </form>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div id="confirmModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 p-4">
+      <div class="w-full max-w-md rounded-xl border border-line bg-panel p-5">
+        <h3 id="confirmTitle" class="text-lg font-semibold">Aktion bestätigen</h3>
+        <p id="confirmText" class="mt-2 text-sm text-slate-300"></p>
+        <div class="mt-4 flex gap-2">
+          <button id="confirmOkBtn" class="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold">Ja, ausführen</button>
+          <button id="confirmCancelBtn" class="rounded-lg border border-line px-4 py-2 text-sm">Abbrechen</button>
+        </div>
+      </div>
+    </div>
+
+    <footer class="border-t border-line/50 bg-black/25 px-4 py-4 text-center text-xs text-slate-300">
+      GastroDash™ - Live Bestellungen • Verwaltung • Statistics | Copyright von Citizen.P®
+      <a href="https://citizenp.me/coding" target="_blank" rel="noreferrer" class="ml-1 text-sky-300 underline">citizenp.me/coding</a>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const msg = document.getElementById("message");
+      const loginSection = document.getElementById("loginSection");
+      const adminSection = document.getElementById("adminSection");
+      const menuBtns = [...document.querySelectorAll(".menu-btn")];
+      const views = {
+        "product-list": document.getElementById("view-product-list"),
+        "product-create": document.getElementById("view-product-create"),
+        settings: document.getElementById("view-settings"),
+        stats: document.getElementById("view-stats")
+      };
+      let categories = [];
+      let confirmAction = null;
+
+      function notice(text, ok) {
+        msg.textContent = text;
+        msg.className = `mb-4 rounded-lg px-4 py-3 text-sm ${ok ? "bg-emerald-900/60 text-emerald-100" : "bg-red-900/60 text-red-100"}`;
+        msg.classList.remove("hidden");
+      }
+
+      function switchView(view) {
+        Object.entries(views).forEach(([k, el]) => el.classList.toggle("hidden", k !== view));
+        menuBtns.forEach((b) => {
+          const active = b.dataset.view === view;
+          b.classList.toggle("bg-accent", active);
+          b.classList.toggle("text-slate-950", active);
+        });
+      }
+
+      function showConfirm(title, text, onConfirm) {
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmText").textContent = text;
+        confirmAction = onConfirm;
+        const modal = document.getElementById("confirmModal");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+      }
+
+      function closeConfirm() {
+        confirmAction = null;
+        const modal = document.getElementById("confirmModal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+      }
+
+      async function uploadImage(file) {
+        const fd = new FormData();
+        fd.append("image", file);
+        const r = await fetch("/api/admin/upload", { method: "POST", body: fd });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || "Upload fehlgeschlagen");
+        return d.imageUrl;
+      }
+
+      function resetProductForm() {
+        ["productId", "productName", "productCategoryCustom", "productPrice", "productImageUrl", "productImageUpload"].forEach((id) => {
+          document.getElementById(id).value = "";
+        });
+        document.getElementById("productCategorySelect").value = "";
+        document.getElementById("productOrderLimit").value = 10;
+        document.getElementById("productSortOrder").value = 0;
+        document.getElementById("uploadWins").checked = true;
+        document.getElementById("productShowPrice").checked = true;
+        document.getElementById("productIsActive").checked = true;
+        document.getElementById("productIsSoldOut").checked = false;
+      }
+
+      function selectedCategory() {
+        const custom = document.getElementById("productCategoryCustom").value.trim();
+        if (custom) return custom;
+        return document.getElementById("productCategorySelect").value || null;
+      }
+
+      function productPayload() {
+        return {
+          id: document.getElementById("productId").value,
+          name: document.getElementById("productName").value.trim(),
+          category: selectedCategory(),
+          price: document.getElementById("productPrice").value === "" ? null : Number(document.getElementById("productPrice").value),
+          orderLimit: Number(document.getElementById("productOrderLimit").value),
+          imageUrl: document.getElementById("productImageUrl").value.trim() || null,
+          imageFile: document.getElementById("productImageUpload").files[0] || null,
+          uploadWins: document.getElementById("uploadWins").checked,
+          sortOrder: Number(document.getElementById("productSortOrder").value) || 0,
+          showPrice: document.getElementById("productShowPrice").checked,
+          isActive: document.getElementById("productIsActive").checked,
+          isSoldOut: document.getElementById("productIsSoldOut").checked
+        };
+      }
+
+      function renderCategorySelect() {
+        const select = document.getElementById("productCategorySelect");
+        const prev = select.value;
+        select.innerHTML = '<option value="">Keine</option>';
+        for (const cat of categories) {
+          const option = document.createElement("option");
+          option.value = cat;
+          option.textContent = cat;
+          select.appendChild(option);
+        }
+        if ([...select.options].some((o) => o.value === prev)) select.value = prev;
+      }
+
+      async function loadCategories() {
+        const r = await fetch("/api/admin/categories");
+        if (!r.ok) return;
+        categories = await r.json();
+        renderCategorySelect();
+      }
+
+      async function loadProducts() {
+        const r = await fetch("/api/admin/products");
+        if (!r.ok) return;
+        const products = await r.json();
+        const tbody = document.getElementById("productsTable");
+        tbody.innerHTML = "";
+        for (const p of products) {
+          const tr = document.createElement("tr");
+          tr.className = "border-t border-line";
+          const statusBadges = [
+            p.isActive
+              ? '<span class="rounded-full border border-emerald-700/60 bg-emerald-900/30 px-2 py-0.5 text-xs text-emerald-200">Aktiv</span>'
+              : '<span class="rounded-full border border-amber-700/60 bg-amber-900/30 px-2 py-0.5 text-xs text-amber-200">Deaktiviert</span>',
+            p.isSoldOut
+              ? '<span class="rounded-full border border-red-700/60 bg-red-900/30 px-2 py-0.5 text-xs text-red-200">Ausverkauft</span>'
+              : '<span class="rounded-full border border-sky-700/60 bg-sky-900/30 px-2 py-0.5 text-xs text-sky-200">Verfügbar</span>'
+          ].join(" ");
+          tr.innerHTML = `
+            <td class="px-3 py-2 font-semibold">${p.name}</td>
+            <td class="px-3 py-2">${p.category || "-"}</td>
+            <td class="px-3 py-2">${p.imageUrl ? `<img src="${p.imageUrl}" class="h-12 w-12 rounded-lg border border-line object-cover" />` : "-"}</td>
+            <td class="px-3 py-2">${p.orderLimit ?? "-"}</td>
+            <td class="px-3 py-2"><div class="flex flex-wrap gap-1">${statusBadges}</div></td>
+            <td class="px-3 py-2">
+              <div class="flex flex-wrap gap-2">
+                <button data-edit="${p.id}" class="rounded border border-line px-2 py-1 hover:bg-panelSoft">Bearbeiten</button>
+                <button data-enable="${p.id}" class="hidden rounded border border-emerald-700 px-2 py-1 text-emerald-200 hover:bg-emerald-900/20">Aktivieren</button>
+                <button data-disable="${p.id}" class="hidden rounded border border-amber-700 px-2 py-1 text-amber-200 hover:bg-amber-900/20">Deaktivieren</button>
+                <button data-soldout-on="${p.id}" class="hidden rounded border border-red-700 px-2 py-1 text-red-200 hover:bg-red-900/20">Ausverkauft</button>
+                <button data-soldout-off="${p.id}" class="hidden rounded border border-sky-700 px-2 py-1 text-sky-200 hover:bg-sky-900/20">Verfügbar</button>
+                <button data-delete="${p.id}" class="rounded border border-red-700 px-2 py-1 text-red-200 hover:bg-red-900/20">Löschen</button>
+              </div>
+            </td>
+          `;
+          tr.querySelector("[data-edit]").onclick = () => {
+            document.getElementById("productId").value = p.id;
+            document.getElementById("productName").value = p.name;
+            document.getElementById("productCategorySelect").value = categories.includes(p.category || "") ? (p.category || "") : "";
+            document.getElementById("productCategoryCustom").value = categories.includes(p.category || "") ? "" : (p.category || "");
+            document.getElementById("productPrice").value = p.price == null ? "" : p.price;
+            document.getElementById("productOrderLimit").value = p.orderLimit || 10;
+            document.getElementById("productImageUrl").value = p.imageUrl || "";
+            document.getElementById("productSortOrder").value = p.sortOrder;
+            document.getElementById("productShowPrice").checked = p.showPrice;
+            document.getElementById("productIsActive").checked = p.isActive;
+            document.getElementById("productIsSoldOut").checked = p.isSoldOut;
+            switchView("product-create");
+          };
+          const enableBtn = tr.querySelector("[data-enable]");
+          const disableBtn = tr.querySelector("[data-disable]");
+          const soldoutOnBtn = tr.querySelector("[data-soldout-on]");
+          const soldoutOffBtn = tr.querySelector("[data-soldout-off]");
+          enableBtn.classList.toggle("hidden", p.isActive);
+          disableBtn.classList.toggle("hidden", !p.isActive);
+          soldoutOnBtn.classList.toggle("hidden", p.isSoldOut);
+          soldoutOffBtn.classList.toggle("hidden", !p.isSoldOut);
+
+          tr.querySelector("[data-enable]").onclick = async () => {
+            await fetch(`/api/admin/products/${p.id}/quick`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ isActive: true })
+            });
+            loadProducts();
+          };
+          tr.querySelector("[data-disable]").onclick = async () => {
+            await fetch(`/api/admin/products/${p.id}/quick`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ isActive: false })
+            });
+            loadProducts();
+          };
+          tr.querySelector("[data-soldout-on]").onclick = async () => {
+            await fetch(`/api/admin/products/${p.id}/quick`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ isSoldOut: true })
+            });
+            loadProducts();
+          };
+          tr.querySelector("[data-soldout-off]").onclick = async () => {
+            await fetch(`/api/admin/products/${p.id}/quick`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ isSoldOut: false })
+            });
+            loadProducts();
+          };
+          tr.querySelector("[data-delete]").onclick = async () => {
+            showConfirm("Produkt löschen", `Produkt "${p.name}" wirklich löschen?`, async () => {
+              const dr = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
+              const dd = await dr.json();
+              if (!dr.ok) return notice(dd.error || "Löschen fehlgeschlagen", false);
+              notice("Produkt gelöscht", true);
+              await Promise.all([loadProducts(), loadCategories()]);
+            });
+          };
+          tbody.appendChild(tr);
+        }
+      }
+
+      async function loadSettings() {
+        const r = await fetch("/api/admin/settings");
+        if (!r.ok) return;
+        const d = await r.json();
+        document.getElementById("siteName").value = d.siteName;
+        document.getElementById("siteTitle").value = d.siteTitle || "";
+        document.getElementById("siteDescription").value = d.siteDescription || "";
+        document.getElementById("tableCount").value = d.tableCount;
+        document.getElementById("productLimit").value = d.productLimit;
+        document.getElementById("adminUsername").value = d.adminUsername || "";
+        document.getElementById("managerUsername").value = d.managerUsername || "";
+      }
+
+      async function loadStats() {
+        const r = await fetch("/api/admin/stats");
+        if (!r.ok) return;
+        const data = await r.json();
+        document.getElementById("statsSummary").innerHTML = `
+          <div class="rounded-lg border border-line bg-panelSoft p-3"><p class="text-xs text-slate-400">Gesamt</p><p class="text-xl font-semibold">${data.summary.totalOrders}</p></div>
+          <div class="rounded-lg border border-line bg-panelSoft p-3"><p class="text-xs text-slate-400">Heute</p><p class="text-xl font-semibold">${data.summary.todayOrders}</p></div>
+          <div class="rounded-lg border border-line bg-panelSoft p-3"><p class="text-xs text-slate-400">Live</p><p class="text-xl font-semibold">${data.summary.liveOrders}</p></div>
+          <div class="rounded-lg border border-line bg-panelSoft p-3"><p class="text-xs text-slate-400">Archiv</p><p class="text-xl font-semibold">${data.summary.archivedOrders}</p></div>
+          <div class="rounded-lg border border-line bg-panelSoft p-3"><p class="text-xs text-slate-400">Ø Dauer (min)</p><p class="text-xl font-semibold">${data.summary.avgArchiveMinutes}</p></div>
+        `;
+        const perDay = document.getElementById("statsPerDay");
+        perDay.innerHTML = "";
+        for (const row of data.perDay) {
+          const div = document.createElement("div");
+          div.className = "rounded border border-line bg-panel p-2 text-sm";
+          div.textContent = `${row.date}: ${row.count} Bestellungen`;
+          perDay.appendChild(div);
+        }
+        const topProducts = document.getElementById("statsTopProducts");
+        topProducts.innerHTML = "";
+        if (!data.topProducts?.length) {
+          topProducts.innerHTML = '<div class="rounded border border-line bg-panel p-2 text-sm">Noch keine Verkäufe vorhanden.</div>';
+        } else {
+          for (const row of data.topProducts) {
+            const div = document.createElement("div");
+            div.className = "rounded border border-line bg-panel p-2 text-sm";
+            div.innerHTML = `<span class="font-semibold">${row.name}</span><span class="float-right text-slate-300">${row.quantity}x</span>`;
+            topProducts.appendChild(div);
+          }
+        }
+        const tbody = document.getElementById("statsOrdersTable");
+        tbody.innerHTML = "";
+        for (const o of data.recentOrders) {
+          const tr = document.createElement("tr");
+          tr.className = "border-t border-line";
+          tr.innerHTML = `
+            <td class="py-1">${o.id}</td>
+            <td>${o.status}</td>
+            <td>${o.customerName || "-"}</td>
+            <td>${o.tableLabel || "-"}</td>
+            <td>${o.itemCount}</td>
+            <td>${o.durationMinutes}</td>
+            <td>${new Date(o.createdAt).toLocaleString("de-DE")}</td>
+          `;
+          tbody.appendChild(tr);
+        }
+      }
+
+      async function checkAuth() {
+        const r = await fetch("/api/admin/me");
+        const d = await r.json();
+        const ok = r.ok && d.authenticated;
+        loginSection.classList.toggle("hidden", ok);
+        adminSection.classList.toggle("hidden", !ok);
+        if (!ok) return;
+        await Promise.all([loadSettings(), loadProducts(), loadCategories(), loadStats()]);
+        const target = location.hash.replace("#", "");
+        switchView(["product-list", "product-create", "settings", "stats"].includes(target) ? target : "product-list");
+      }
+
+      document.getElementById("loginForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const r = await fetch("/api/admin/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: document.getElementById("username").value,
+            password: document.getElementById("password").value
+          })
+        });
+        const d = await r.json();
+        if (!r.ok) return notice(d.error || "Login fehlgeschlagen", false);
+        notice("Login erfolgreich", true);
+        checkAuth();
+      };
+
+      document.getElementById("logoutBtn").onclick = async () => {
+        await fetch("/api/admin/logout", { method: "POST" });
+        checkAuth();
+      };
+
+      document.getElementById("productForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const p = productPayload();
+        try {
+          let imageUrl = p.imageUrl;
+          if (p.imageFile && (p.uploadWins || !imageUrl)) imageUrl = await uploadImage(p.imageFile);
+          if (!imageUrl && !p.id) return notice("Produktbild per Upload oder URL ist Pflicht.", false);
+          const body = { ...p, imageUrl };
+          delete body.id;
+          delete body.imageFile;
+          delete body.uploadWins;
+          const r = await fetch(p.id ? `/api/admin/products/${p.id}` : "/api/admin/products", {
+            method: p.id ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+          const d = await r.json();
+          if (!r.ok) return notice(d.error || "Speichern fehlgeschlagen", false);
+          notice(p.id ? "Produkt aktualisiert" : "Produkt erstellt", true);
+          resetProductForm();
+          await Promise.all([loadProducts(), loadCategories()]);
+        } catch (err) {
+          notice(err.message || "Upload fehlgeschlagen", false);
+        }
+      };
+
+      document.getElementById("resetProductBtn").onclick = resetProductForm;
+
+      document.getElementById("settingsForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const body = {
+          siteName: document.getElementById("siteName").value,
+          siteTitle: document.getElementById("siteTitle").value,
+          siteDescription: document.getElementById("siteDescription").value,
+          tableCount: Number(document.getElementById("tableCount").value),
+          productLimit: Number(document.getElementById("productLimit").value)
+        };
+        const pw = document.getElementById("archivePasswordInput").value.trim();
+        if (pw) body.archiveDeletePassword = pw;
+        const r = await fetch("/api/admin/settings", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (!r.ok) return notice(d.error || "Einstellungen konnten nicht gespeichert werden", false);
+        document.getElementById("archivePasswordInput").value = "";
+        notice("Einstellungen gespeichert", true);
+        loadSettings();
+      };
+
+      document.getElementById("usersForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const body = {
+          adminUsername: document.getElementById("adminUsername").value,
+          adminPassword: document.getElementById("adminPassword").value,
+          managerUsername: document.getElementById("managerUsername").value,
+          managerPassword: document.getElementById("managerPassword").value
+        };
+        const r = await fetch("/api/admin/users", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (!r.ok) return notice(d.error || "User-Einstellungen konnten nicht gespeichert werden", false);
+        document.getElementById("adminPassword").value = "";
+        document.getElementById("managerPassword").value = "";
+        notice("User-Einstellungen gespeichert (.env + Datenbank).", true);
+        loadSettings();
+      };
+
+      document.getElementById("clearProductsBtn").onclick = async () => {
+        showConfirm("Alle Produkte löschen", "Willst du wirklich alle Produkte löschen?", async () => {
+          const r = await fetch("/api/admin/maintenance/clear-products", { method: "POST" });
+          const d = await r.json();
+          if (!r.ok) return notice(d.error || "Produkte konnten nicht gelöscht werden", false);
+          notice("Alle Produkte wurden gelöscht.", true);
+          await Promise.all([loadProducts(), loadCategories()]);
+        });
+      };
+
+      document.getElementById("clearArchiveBtn").onclick = async () => {
+        showConfirm("Archiv leeren", "Willst du wirklich alle Archiv-Bestellungen löschen?", async () => {
+          const r = await fetch("/api/admin/maintenance/clear-archive", { method: "POST" });
+          const d = await r.json();
+          if (!r.ok) return notice(d.error || "Archiv konnte nicht gelöscht werden", false);
+          notice("Archiv wurde gelöscht.", true);
+          loadStats();
+        });
+      };
+
+      document.getElementById("confirmCancelBtn").onclick = closeConfirm;
+      document.getElementById("confirmOkBtn").onclick = async () => {
+        if (!confirmAction) return closeConfirm();
+        const action = confirmAction;
+        closeConfirm();
+        await action();
+      };
+
+      menuBtns.forEach((b) => {
+        b.onclick = () => {
+          const v = b.dataset.view;
+          switchView(v);
+          location.hash = `#${v}`;
+          if (v === "stats") loadStats();
+        };
+      });
+
+      socket.on("products:changed", () => {
+        loadProducts();
+        loadCategories();
+      });
+      socket.on("orders:changed", loadStats);
+      socket.on("settings:changed", loadSettings);
+
+      checkAuth().catch(() => notice("Fehler beim Laden des Adminbereichs", false));
+    </script>
+  </body>
+</html>

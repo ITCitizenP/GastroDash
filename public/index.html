@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anmelden - GastroDash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ["Sora", "sans-serif"] },
+            colors: {
+              panel: "#111827",
+              panelSoft: "#1f2937",
+              line: "#374151",
+              accent: "#f97316"
+            }
+          }
+        }
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="flex min-h-screen flex-col bg-slate-950 text-slate-100">
+    <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_10%,#1f2937_0%,transparent_45%),radial-gradient(circle_at_90%_20%,#7c2d12_0%,transparent_35%),linear-gradient(#020617,#0f172a)]"></div>
+
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-10 md:px-8">
+      <header class="mb-8">
+        <p class="text-sm uppercase tracking-[0.3em] text-orange-300" id="pageName">GastroDash</p>
+        <h1 class="mt-2 text-4xl font-bold" id="pageTitle">Anmelden</h1>
+        <p class="mt-2 text-sm text-slate-300" id="pageDescription">Digitales Bestellsystem</p>
+      </header>
+
+      <div id="message" class="mb-4 hidden rounded-lg px-4 py-3 text-sm"></div>
+
+      <section class="mb-5 grid gap-3 md:grid-cols-2">
+        <label class="text-sm">
+          Suche
+          <input id="productSearch" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Produkt oder Kategorie suchen..." />
+        </label>
+        <div id="categoryChips" class="flex flex-wrap items-end gap-2"></div>
+      </section>
+
+      <form id="orderForm" class="space-y-6">
+        <section>
+          <div id="products" class="space-y-6"></div>
+        </section>
+        <button type="submit" class="rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-white transition hover:brightness-110">Bestellen</button>
+      </form>
+    </main>
+
+    <div id="orderModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-black/70 px-4">
+      <div class="w-full max-w-lg rounded-xl border border-line bg-panel p-5">
+        <h2 class="text-xl font-semibold">Bestellung absenden</h2>
+        <p class="mt-1 text-sm text-slate-400">Mindestens Name oder Tisch ausfüllen.</p>
+        <div id="modalError" class="mt-3 hidden rounded-lg bg-red-900/60 px-3 py-2 text-sm text-red-100"></div>
+
+        <form id="checkoutForm" class="mt-4 space-y-3">
+          <label class="block text-sm">
+            Name
+            <input id="customerName" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="z. B. Max" />
+          </label>
+          <label class="block text-sm">
+            Tisch
+            <select id="tableSelect" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2"></select>
+          </label>
+          <label class="block text-sm">
+            Tisch (freier Text)
+            <input id="tableText" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Alternative Tischnummer, z. B. 7" />
+          </label>
+          <label class="block text-sm">
+            Zusatztext/Beschreibung
+            <textarea id="orderNote" rows="2" class="mt-1 w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="z. B. ohne Zwiebeln"></textarea>
+          </label>
+          <div class="mt-4 flex gap-2">
+            <button class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold">Verbindlich bestellen</button>
+            <button id="cancelModalBtn" type="button" class="rounded-lg border border-line px-4 py-2 text-sm">Abbrechen</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const productsContainer = document.getElementById("products");
+      const pageNameEl = document.getElementById("pageName");
+      const pageTitleEl = document.getElementById("pageTitle");
+      const pageDescriptionEl = document.getElementById("pageDescription");
+      const tableSelect = document.getElementById("tableSelect");
+      const tableText = document.getElementById("tableText");
+      const customerName = document.getElementById("customerName");
+      const orderNote = document.getElementById("orderNote");
+      const orderForm = document.getElementById("orderForm");
+      const productSearch = document.getElementById("productSearch");
+      const categoryChips = document.getElementById("categoryChips");
+      const checkoutForm = document.getElementById("checkoutForm");
+      const orderModal = document.getElementById("orderModal");
+      const cancelModalBtn = document.getElementById("cancelModalBtn");
+      const messageEl = document.getElementById("message");
+      const modalError = document.getElementById("modalError");
+      const socket = io();
+
+      let tableCount = 0;
+      let maxOrderQuantity = 99;
+      let allProducts = [];
+      let selectedCategory = "ALLE";
+
+      function showMessage(text, ok) {
+        messageEl.textContent = text;
+        messageEl.className = `mb-4 rounded-lg px-4 py-3 text-sm ${ok ? "bg-emerald-900/60 text-emerald-100" : "bg-red-900/60 text-red-100"}`;
+        messageEl.classList.remove("hidden");
+      }
+
+      function showModalError(text) {
+        modalError.textContent = text;
+        modalError.classList.remove("hidden");
+      }
+
+      function hideModalError() {
+        modalError.classList.add("hidden");
+        modalError.textContent = "";
+      }
+
+      function renderTables() {
+        tableSelect.innerHTML = '<option value="">Keine Auswahl</option>';
+        for (let i = 1; i <= tableCount; i += 1) {
+          const option = document.createElement("option");
+          option.value = String(i);
+          option.textContent = `Tisch ${i}`;
+          tableSelect.appendChild(option);
+        }
+      }
+
+      function setQuantity(input, delta) {
+        const current = Number(input.value) || 0;
+        const limit = Number(input.dataset.limit || maxOrderQuantity);
+        input.value = String(Math.max(0, Math.min(limit, current + delta)));
+      }
+
+      function renderCategoryChips(items) {
+        const categories = [...new Set(items.map((p) => (p.category || "Sonstige").trim() || "Sonstige"))].sort((a, b) => a.localeCompare(b, "de"));
+        const all = ["ALLE", ...categories];
+        categoryChips.innerHTML = "";
+        for (const cat of all) {
+          const b = document.createElement("button");
+          b.type = "button";
+          b.textContent = cat;
+          b.className = `rounded-full border px-3 py-1 text-xs ${selectedCategory === cat ? "border-accent bg-accent/20 text-orange-200" : "border-line bg-panelSoft text-slate-300"}`;
+          b.onclick = () => {
+            selectedCategory = cat;
+            applyProductFilters();
+          };
+          categoryChips.appendChild(b);
+        }
+      }
+
+      function renderProducts(items) {
+        productsContainer.innerHTML = "";
+        if (!items.length) {
+          productsContainer.innerHTML = '<p class="text-slate-300">Keine aktiven Produkte vorhanden.</p>';
+          return;
+        }
+
+        const byCategory = new Map();
+        for (const p of items) {
+          const cat = (p.category || "Sonstige").trim() || "Sonstige";
+          if (!byCategory.has(cat)) byCategory.set(cat, []);
+          byCategory.get(cat).push(p);
+        }
+        const sortedCats = [...byCategory.keys()].sort((a, b) => a.localeCompare(b, "de"));
+
+        for (const category of sortedCats) {
+          const section = document.createElement("section");
+          section.innerHTML = `<h2 class="mb-3 text-lg font-semibold text-orange-300">${category}</h2>`;
+          const grid = document.createElement("div");
+          grid.className = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
+          for (const product of byCategory.get(category)) {
+          const perProductLimit = Math.max(1, Math.min(maxOrderQuantity, Number(product.orderLimit || maxOrderQuantity)));
+          const soldOut = product.isSoldOut || !product.isActive;
+          const priceText = product.showPrice && product.price != null ? `${Number(product.price).toFixed(2)} EUR` : "";
+          const image = product.imageUrl
+            ? `<img src="${product.imageUrl}" alt="${product.name}" class="mb-3 h-36 w-full rounded-lg object-cover" onerror="this.style.display='none'" />`
+            : "";
+
+          const card = document.createElement("div");
+          card.className = `rounded-xl border p-4 ${soldOut ? "border-slate-700 bg-slate-900/60 opacity-70" : "border-line bg-panel"}`;
+          card.innerHTML = `
+            ${image}
+            <div class="mb-2 flex items-start justify-between gap-2">
+              <h2 class="text-lg font-semibold">${product.name}</h2>
+              ${soldOut ? '<span class="rounded bg-red-500/20 px-2 py-1 text-xs text-red-200">Ausverkauft</span>' : ""}
+            </div>
+            ${product.category ? `<p class="mb-2 text-sm text-slate-400">${product.category}</p>` : ""}
+            ${priceText ? `<p class="mb-3 text-sm text-orange-300">${priceText}</p>` : '<p class="mb-3 text-sm text-slate-500">Preis auf Anfrage</p>'}
+            <div class="space-y-2">
+              <label class="text-sm text-slate-300">Menge</label>
+              <input data-id="${product.id}" data-limit="${perProductLimit}" type="number" min="0" max="${perProductLimit}" value="0" ${soldOut ? "disabled" : ""}
+                class="w-full rounded-lg border border-line bg-panelSoft px-3 py-2 focus:border-accent focus:outline-none disabled:cursor-not-allowed" />
+              <p class="text-xs text-slate-400">Maximal ${perProductLimit} pro Bestellung</p>
+              <div class="grid grid-cols-4 gap-2 text-xs">
+                <button type="button" data-delta="1" class="rounded border border-line py-1 hover:bg-panelSoft" ${soldOut ? "disabled" : ""}>+1</button>
+                <button type="button" data-delta="-1" class="rounded border border-line py-1 hover:bg-panelSoft" ${soldOut ? "disabled" : ""}>-1</button>
+                <button type="button" data-delta="5" class="rounded border border-line py-1 hover:bg-panelSoft" ${soldOut ? "disabled" : ""}>+5</button>
+                <button type="button" data-delta="-5" class="rounded border border-line py-1 hover:bg-panelSoft" ${soldOut ? "disabled" : ""}>-5</button>
+              </div>
+            </div>
+          `;
+
+          const quantityInput = card.querySelector("input[data-id]");
+          for (const button of card.querySelectorAll("button[data-delta]")) {
+            button.addEventListener("click", () => setQuantity(quantityInput, Number(button.dataset.delta)));
+          }
+          grid.appendChild(card);
+        }
+          section.appendChild(grid);
+          productsContainer.appendChild(section);
+        }
+      }
+
+      function applyProductFilters() {
+        const q = productSearch.value.trim().toLowerCase();
+        let filtered = [...allProducts];
+        if (selectedCategory !== "ALLE") {
+          filtered = filtered.filter((p) => ((p.category || "Sonstige").trim() || "Sonstige") === selectedCategory);
+        }
+        if (q) {
+          filtered = filtered.filter((p) => {
+            const category = (p.category || "").toLowerCase();
+            return p.name.toLowerCase().includes(q) || category.includes(q);
+          });
+        }
+        renderCategoryChips(allProducts);
+        renderProducts(filtered);
+      }
+
+      function collectItems() {
+        return [...document.querySelectorAll("input[data-id]")]
+          .map((input) => {
+            const limit = Number(input.dataset.limit || maxOrderQuantity);
+            const quantity = Math.max(0, Math.min(limit, Number(input.value) || 0));
+            input.value = String(quantity);
+            return { productId: Number(input.dataset.id), quantity };
+          })
+          .filter((item) => item.quantity > 0);
+      }
+
+      async function loadConfig() {
+        const response = await fetch("/api/public/config");
+        const data = await response.json();
+        tableCount = data.tableCount;
+        maxOrderQuantity = data.maxOrderQuantity || 99;
+        pageNameEl.textContent = data.siteName || "GastroDash";
+        pageTitleEl.textContent = data.siteTitle || "Anmelden";
+        pageDescriptionEl.textContent = data.siteDescription || "Digitales Bestellsystem";
+        allProducts = data.products || [];
+        renderTables();
+        applyProductFilters();
+      }
+
+      orderForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!collectItems().length) {
+          showMessage("Bitte mindestens ein Produkt mit Menge > 0 wählen.", false);
+          return;
+        }
+        hideModalError();
+        orderModal.classList.remove("hidden");
+        orderModal.classList.add("flex");
+      });
+
+      cancelModalBtn.addEventListener("click", () => {
+        hideModalError();
+        orderModal.classList.add("hidden");
+        orderModal.classList.remove("flex");
+      });
+
+      checkoutForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const quantities = collectItems();
+        const selectedTable = tableSelect.value ? String(tableSelect.value) : "";
+        const freeTable = tableText.value.trim();
+        let normalizedTable = selectedTable || null;
+        let normalizedNote = orderNote.value.trim() || null;
+
+        if (freeTable) {
+          const numericOnly = freeTable.match(/^\d+$/);
+          const prefixed = freeTable.match(/^tisch\s*(\d+)$/i);
+          if (numericOnly) {
+            normalizedTable = freeTable;
+          } else if (prefixed) {
+            normalizedTable = prefixed[1];
+          } else {
+            normalizedNote = normalizedNote ? `${normalizedNote} | ${freeTable}` : freeTable;
+          }
+        }
+
+        const payload = {
+          customerName: customerName.value.trim() || null,
+          tableLabel: normalizedTable,
+          note: normalizedNote,
+          items: quantities
+        };
+
+        if (!payload.customerName && !payload.tableLabel) {
+          showModalError("Bitte Name oder Tisch angeben.");
+          return;
+        }
+        if (!quantities.length) {
+          showModalError("Bitte mindestens ein Produkt wählen.");
+          return;
+        }
+
+        const response = await fetch("/api/public/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+          showModalError(result.error || "Bestellung konnte nicht gespeichert werden.");
+          return;
+        }
+
+        for (const input of document.querySelectorAll("input[data-id]")) {
+          input.value = 0;
+        }
+        customerName.value = "";
+        tableText.value = "";
+        tableSelect.value = "";
+        orderNote.value = "";
+        hideModalError();
+        orderModal.classList.add("hidden");
+        orderModal.classList.remove("flex");
+        showMessage(`Bestellung #${result.order.id} erfolgreich gesendet.`, true);
+      });
+
+      socket.on("products:changed", loadConfig);
+      socket.on("settings:changed", loadConfig);
+      productSearch.addEventListener("input", applyProductFilters);
+
+      loadConfig().catch(() => {
+        showMessage("Fehler beim Laden der Daten.", false);
+      });
+    </script>
+    <footer class="border-t border-line/50 bg-black/25 px-4 py-4 text-center text-xs text-slate-300">
+      GastroDash™ - Live Bestellungen • Verwaltung • Statistics | Copyright von Citizen.P®
+      <a href="https://citizenp.me/coding" target="_blank" rel="noreferrer" class="ml-1 text-sky-300 underline">citizenp.me/coding</a>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  LIVE
+  ARCHIVE
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now())
+}
+
+model Settings {
+  id                       Int      @id
+  tableCount               Int      @default(20)
+  siteName                 String   @default("GastroDash")
+  siteTitle                String   @default("Anmelden")
+  siteDescription          String   @default("Digitales Bestellsystem")
+  productLimit             Int      @default(200)
+  archiveDeletePasswordHash String?
+  updatedAt                DateTime @updatedAt
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  category    String?
+  price       Float?
+  showPrice   Boolean     @default(true)
+  imageUrl    String?
+  orderLimit  Int         @default(10)
+  sortOrder   Int         @default(0)
+  isActive    Boolean     @default(true)
+  isSoldOut   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id           Int         @id @default(autoincrement())
+  customerName String?
+  tableLabel   String?
+  note         String?
+  status       OrderStatus @default(LIVE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id            Int      @id @default(autoincrement())
+  orderId        Int
+  productId      Int
+  quantity       Int
+  snapshotName   String
+  snapshotPrice  Float?
+  snapshotIsFree Boolean  @default(false)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+}
