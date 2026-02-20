@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const http = require("http");
+const crypto = require("crypto");
 const express = require("express");
 const session = require("express-session");
 const bcrypt = require("bcryptjs");
@@ -19,13 +20,17 @@ const ENV_PATH = path.join(__dirname, "../.env");
 const PORT = Number(process.env.SERVER_PORT || process.env.PORT) || 3000;
 const DATABASE_URL = process.env.DATABASE_URL || "file:./dev.db";
 const PRISMA_DIR = path.join(__dirname, "../prisma");
-const SESSION_SECRET = process.env.SESSION_SECRET || "change-me";
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(48).toString("hex");
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const MANAGER_USERNAME = process.env.MANAGER_USERNAME || "manager";
 const MANAGER_PASSWORD = process.env.MANAGER_PASSWORD || "manager123";
 const LEGACY_ARCHIVE_DELETE_PASSWORD = process.env.ARCHIVE_DELETE_PASSWORD || "archive-delete";
 const MAX_ORDER_QUANTITY = Number(process.env.MAX_ORDER_QUANTITY) || 99;
+
+if (!process.env.SESSION_SECRET) {
+  console.warn("[security] SESSION_SECRET fehlt. Es wurde ein zufälliger temporärer Secret generiert.");
+}
 
 const uploadDir = path.join(__dirname, "../public/uploads");
 fs.mkdirSync(uploadDir, { recursive: true });
