@@ -1,5 +1,7 @@
 # GastroDash
 
+![GastroDash Banner](logo/GastroDash_logo_banner.png)
+
 Digitales Bestell- und Live-Board-System für Gastronomie, Vereinsheime und Events.
 
 GastroDash bietet eine öffentliche Bestellseite, ein Admin-Panel, eine Live-Verwaltung mit Echtzeit-Updates und eine Statistikansicht. Die App ist leichtgewichtig und läuft nur mit Node.js + SQLite.
