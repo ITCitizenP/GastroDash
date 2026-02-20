@@ -1,8 +1,8 @@
 # GastroDash
 
-Digitales Bestell- und Live-Board-System fuer Gastronomie, Vereinsheime und Events.
+Digitales Bestell- und Live-Board-System für Gastronomie, Vereinsheime und Events.
 
-GastroDash bietet eine oeffentliche Bestellseite, ein Admin-Panel, eine Live-Verwaltung mit Echtzeit-Updates und eine Statistikansicht. Die App ist leichtgewichtig und laeuft nur mit Node.js + SQLite.
+GastroDash bietet eine öffentliche Bestellseite, ein Admin-Panel, eine Live-Verwaltung mit Echtzeit-Updates und eine Statistikansicht. Die App ist leichtgewichtig und läuft nur mit Node.js + SQLite.
 
 ## Tech Stack
 - Backend: `Node.js` + `Express`
@@ -13,15 +13,15 @@ GastroDash bietet eine oeffentliche Bestellseite, ein Admin-Panel, eine Live-Ver
 
 ## Hauptfunktionen
 
-### Oeffentliche Bestellseite (`/`)
+### Öffentliche Bestellseite (`/`)
 - Konfigurierbarer Seitenname, Seitentitel und Seitenbeschreibung
 - Produktanzeige mit Kategorien
 - Suche nach Produkten/Kategorien
 - Mengenwahl mit Buttons (`+1`, `-1`, `+5`, `-5`)
-- Produktstatus beruecksichtigt:
+- Produktstatus berücksichtigt:
   - deaktiviert/ausverkauft => nicht bestellbar
 - Bestellung per Overlay mit Pflichtregel:
-  - `Name` oder `Tisch` muss ausgefuellt sein
+  - `Name` oder `Tisch` muss ausgefüllt sein
 - Optionaler Zusatztext/Details
 
 ### Adminbereich (`/admin`)
@@ -49,32 +49,32 @@ GastroDash bietet eine oeffentliche Bestellseite, ein Admin-Panel, eine Live-Ver
 - Dynamische Quick-Buttons (nur sinnvolle Aktionen sichtbar)
 
 ### Bestellungen verwalten (`/admin/live`)
-- Login fuer `ADMIN` und `MANAGER`
+- Login für `ADMIN` und `MANAGER`
 - Echtzeit-Board mit Status:
   - `Noch offen` (LIVE)
   - `Abgeschlossene` (ARCHIVE), optional einblendbar
-- Globale Suche ueber:
+- Globale Suche über:
   - Name
   - Details
   - Tisch
   - Produktnamen
 - Tischfilter per Dropdown
 - Bestellungen umschalten zwischen LIVE/ARCHIVE
-- Passwortgeschuetztes Loeschen abgeschlossener Eintraege
-- `Short Produkt Settings` Overlay fuer schnelle Produktstatus-Aenderung
+- Passwortgeschütztes Löschen abgeschlossener Einträge
+- `Short Produkt Settings` Overlay für schnelle Produktstatus-Änderung
   - dynamische Buttons je nach aktuellem Status
 
 ### Einstellungen
 - Tischanzahl
 - Globales Produktlimit
 - Seitenname / Seitentitel / Seitenbeschreibung
-- Passwort fuer Loeschen abgeschlossener Bestellungen
+- Passwort für Löschen abgeschlossener Bestellungen
 - User-Einstellungen:
-  - Admin und Manager Username/Passwort im Web aenderbar
+  - Admin und Manager Username/Passwort im Web änderbar
   - wird in DB gespeichert und in `.env` synchronisiert
 - Wartung:
-  - Alle Produkte loeschen (mit Bestaetigungs-Overlay)
-  - Alle Archiv-Bestellungen loeschen (mit Bestaetigungs-Overlay)
+  - Alle Produkte löschen (mit Bestätigungs-Overlay)
+  - Alle Archiv-Bestellungen löschen (mit Bestätigungs-Overlay)
 
 ### Statistiken
 - Gesamtbestellungen
@@ -94,12 +94,12 @@ GastroDash bietet eine oeffentliche Bestellseite, ein Admin-Panel, eine Live-Ver
 
 ## Projektstruktur
 - `src/` Backend (Express, API, Socket.IO)
-- `src/views/` HTML-Views fuer geschuetzte Bereiche
+- `src/views/` HTML-Views für geschützte Bereiche
 - `prisma/` Prisma-Schema
-- `public/` Oeffentliche Frontend-Dateien
+- `public/` Öffentliche Frontend-Dateien
 
 ## Installation
-1. Abhaengigkeiten installieren
+1. Abhängigkeiten installieren
 ```bash
 npm install
 ```
@@ -124,6 +124,17 @@ npm run prisma:push
 npm run start
 ```
 
+Oder als All-in-One Start (Prisma Generate + DB Push + Serverstart):
+```bash
+npm run master
+```
+
+Hinweis zu `master.js`:
+- `master.js` ist eine optionale Komfort-Startdatei.
+- Sie startet nicht nur den Server, sondern führt davor `prisma generate` und `prisma db push` aus.
+- Bei jedem Neustart mit `master.js` laufen diese Schritte erneut.
+- Für Produktion meist besser: normal mit `npm run start` starten und `npm run master` nur bei Setup/Updates nutzen.
+
 Entwicklung mit Auto-Reload:
 ```bash
 npm run dev
@@ -133,19 +144,21 @@ npm run dev
 Siehe `.env.example`:
 
 - `DATABASE_URL` SQLite-Pfad (z. B. `file:./dev.db`)
-- `PORT` Server-Port (z. B. fuer Pterodactyl)
+- `SERVER_PORT` bevorzugter Server-Port
+- `PORT` Fallback-Server-Port (z. B. für Pterodactyl)
 - `SESSION_SECRET` Session-Secret
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD`
 - `MANAGER_USERNAME` / `MANAGER_PASSWORD`
-- `ARCHIVE_DELETE_PASSWORD` Fallback fuer Archiv-Loeschpasswort
+- `ARCHIVE_DELETE_PASSWORD` Fallback für Archiv-Löschpasswort
 - `MAX_ORDER_QUANTITY` maximale Menge pro Produktposition bei Bestellung
 
 ## NPM Skripte
 - `npm run dev` Start mit `nodemon`
 - `npm run start` Produktionsstart
+- `npm run master` Generate + DB Push + Serverstart
 - `npm run prisma:generate` Prisma Client erzeugen
 - `npm run prisma:push` Schema in SQLite anwenden
-- `npm run prisma:studio` Datenbank im Prisma Studio oeffnen
+- `npm run prisma:studio` Datenbank im Prisma Studio öffnen
 
 ## API (Auszug)
 - Public:
@@ -172,7 +185,7 @@ Siehe `.env.example`:
 ### Prisma Error `EPERM ... query_engine-windows.dll.node`
 Kann bei Netzwerkpfaden/UNC-Freigaben auf Windows auftreten.
 
-Typische Loesung:
+Typische Lösung:
 1. Laufende Node-Prozesse beenden
 ```powershell
 taskkill /F /IM node.exe
@@ -186,6 +199,4 @@ npm run prisma:generate
 Falls alte Werte wie `OPEN` in Bestellungen existieren, normalisiert der Server diese beim Start automatisch auf `LIVE`/`ARCHIVE`.
 
 ## Lizenz
-Privates/Projektinternes Repository. Lizenz nach Bedarf ergaenzen.
-"# GastroDash" 
-# GastroDash
+Privates/Projektinternes Repository. Lizenz nach Bedarf ergänzen.

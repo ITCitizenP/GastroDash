@@ -16,7 +16,9 @@ const server = http.createServer(app);
 const io = new Server(server);
 const ENV_PATH = path.join(__dirname, "../.env");
 
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.SERVER_PORT || process.env.PORT) || 3000;
+const DATABASE_URL = process.env.DATABASE_URL || "file:./dev.db";
+const PRISMA_DIR = path.join(__dirname, "../prisma");
 const SESSION_SECRET = process.env.SESSION_SECRET || "change-me";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
@@ -27,6 +29,8 @@ const MAX_ORDER_QUANTITY = Number(process.env.MAX_ORDER_QUANTITY) || 99;
 
 const uploadDir = path.join(__dirname, "../public/uploads");
 fs.mkdirSync(uploadDir, { recursive: true });
+const dbImportDir = path.join(__dirname, "../tmp");
+fs.mkdirSync(dbImportDir, { recursive: true });
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -49,6 +53,11 @@ const upload = multer({
     }
     cb(null, true);
   }
+});
+
+const dbUpload = multer({
+  dest: dbImportDir,
+  limits: { fileSize: 100 * 1024 * 1024 }
 });
 
 app.use(express.json());
@@ -123,6 +132,18 @@ function setEnvValue(key, value) {
     content = `${content.trimEnd()}\n${line}\n`;
   }
   fs.writeFileSync(ENV_PATH, content, "utf8");
+}
+
+function resolveDatabaseFilePath() {
+  if (!DATABASE_URL.startsWith("file:")) {
+    throw new Error("Nur SQLite DATABASE_URL mit file: wird unterstützt.");
+  }
+  const rawPath = decodeURIComponent(DATABASE_URL.slice(5));
+  if (!rawPath) {
+    throw new Error("DATABASE_URL enthält keinen gültigen SQLite-Dateipfad.");
+  }
+  // Prisma resolves relative SQLite paths from the prisma schema directory.
+  return path.isAbsolute(rawPath) ? rawPath : path.resolve(PRISMA_DIR, rawPath);
 }
 
 function emitProductsChanged() {
@@ -389,8 +410,8 @@ app.post("/api/admin/login", async (req, res) => {
   if (!isValid) {
     return res.status(401).json({ error: "Ungültige Zugangsdaten" });
   }
-  if (user.role !== UserRole.ADMIN) {
-    return res.status(403).json({ error: "Nur Admins dürfen sich hier anmelden" });
+  if (![UserRole.ADMIN, UserRole.MANAGER].includes(user.role)) {
+    return res.status(403).json({ error: "Keine Berechtigung" });
   }
 
   req.session.userId = user.id;
@@ -406,10 +427,14 @@ app.post("/api/admin/logout", (req, res) => {
 });
 
 app.get("/api/admin/me", (req, res) => {
-  if (!isAuthenticated(req) || sessionRole(req) !== UserRole.ADMIN) {
+  if (!isAuthenticated(req)) {
     return res.status(401).json({ authenticated: false });
   }
-  res.json({ authenticated: true, username: req.session.username, role: req.session.role });
+  const role = sessionRole(req);
+  if (![UserRole.ADMIN, UserRole.MANAGER].includes(role)) {
+    return res.status(403).json({ authenticated: false });
+  }
+  res.json({ authenticated: true, username: req.session.username, role, isAdmin: role === UserRole.ADMIN });
 });
 
 app.post("/api/live/login", async (req, res) => {
@@ -564,6 +589,63 @@ app.post("/api/admin/upload", requireAdmin, upload.single("image"), (req, res) =
     return res.status(400).json({ error: "Datei fehlt" });
   }
   res.json({ success: true, imageUrl: `/uploads/${req.file.filename}` });
+});
+
+app.get("/api/admin/db/export", requireAdmin, (req, res) => {
+  try {
+    const dbPath = resolveDatabaseFilePath();
+    if (!fs.existsSync(dbPath)) {
+      return res.status(404).json({ error: "Datenbankdatei nicht gefunden." });
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    res.download(dbPath, `gastrodash-backup-${stamp}.db`);
+  } catch (error) {
+    res.status(400).json({ error: error.message || "Export fehlgeschlagen." });
+  }
+});
+
+app.post("/api/admin/db/import", requireAdmin, dbUpload.single("database"), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "Bitte eine Datenbankdatei auswählen." });
+  }
+  const extension = path.extname(req.file.originalname || "").toLowerCase();
+  if (extension && ![".db", ".sqlite", ".sqlite3"].includes(extension)) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: "Nur .db, .sqlite oder .sqlite3 Dateien sind erlaubt." });
+  }
+
+  let backupPath = null;
+  try {
+    const dbPath = resolveDatabaseFilePath();
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    backupPath = `${dbPath}.bak-${Date.now()}`;
+
+    await prisma.$disconnect();
+
+    if (fs.existsSync(dbPath)) {
+      fs.copyFileSync(dbPath, backupPath);
+    }
+    fs.copyFileSync(req.file.path, dbPath);
+
+    emitProductsChanged();
+    emitOrdersChanged();
+    emitSettingsChanged();
+    res.json({ success: true, backup: backupPath ? path.basename(backupPath) : null });
+  } catch (error) {
+    try {
+      if (backupPath && fs.existsSync(backupPath)) {
+        const dbPath = resolveDatabaseFilePath();
+        fs.copyFileSync(backupPath, dbPath);
+      }
+    } catch {}
+    res.status(500).json({ error: "Import fehlgeschlagen. Backup wurde wiederhergestellt." });
+  } finally {
+    try {
+      if (req.file?.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+    } catch {}
+  }
 });
 
 app.put("/api/admin/users", requireAdmin, async (req, res) => {

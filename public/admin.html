@@ -19,9 +19,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body class="flex min-h-screen flex-col bg-slate-950 text-slate-100">
-    <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_20%_10%,#0b1f35_0%,transparent_45%),radial-gradient(circle_at_85%_15%,#12385f_0%,transparent_35%),linear-gradient(#020617,#06152b)]"></div>
-    <main class="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">
+  <body class="flex min-h-screen flex-col bg-[radial-gradient(circle_at_20%_10%,#0b1f35_0%,transparent_45%),radial-gradient(circle_at_85%_15%,#12385f_0%,transparent_35%),linear-gradient(#020617,#0b1220)] bg-slate-950 bg-fixed text-slate-100">
+    <main class="mx-auto w-full max-w-7xl flex-1 p-4 pb-10 md:p-8 md:pb-14">
       <div id="message" class="mb-4 hidden rounded-lg px-4 py-3 text-sm"></div>
 
       <section id="loginSection" class="mx-auto max-w-md rounded-xl border border-line bg-panel p-6">
@@ -81,7 +80,7 @@
                 <input id="productCategoryCustom" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" placeholder="z. B. Cocktails" />
               </label>
               <label class="block text-sm">Preis
-                <input id="productPrice" type="number" step="0.01" min="0" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+                <input id="productPrice" type="number" step="0.01" min="0" placeholder="z. B. 2.50" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
               </label>
               <label class="block text-sm">Bestelllimit pro Produkt
                 <input id="productOrderLimit" type="number" min="1" step="1" value="10" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
@@ -93,7 +92,11 @@
                 <input id="productImageUrl" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" placeholder="https://..." />
               </label>
               <label class="block text-sm">Bild-Upload
-                <input id="productImageUpload" type="file" accept="image/png,image/jpeg,image/webp" class="mt-1 w-full rounded-lg border border-line bg-panel px-3 py-2" />
+                <input id="productImageUpload" type="file" accept="image/png,image/jpeg,image/webp" class="hidden" />
+                <div class="mt-1 flex flex-wrap items-center gap-2">
+                  <button id="productChooseFileBtn" type="button" class="rounded-lg border border-line px-4 py-2 text-sm hover:bg-panel">Datei wählen</button>
+                  <span id="productImageFileName" class="max-w-[260px] truncate text-sm text-slate-300">Keine Datei gewählt</span>
+                </div>
               </label>
               <div class="flex flex-wrap gap-4 text-sm">
                 <label><input id="uploadWins" type="checkbox" checked /> Upload priorisieren</label>
@@ -166,6 +169,20 @@
               </div>
             </div>
 
+            <form id="dbToolsForm" class="mt-6 rounded-xl border border-line bg-panelSoft p-4">
+              <h3 class="mb-3 text-lg font-semibold">Datenbank</h3>
+              <div class="flex flex-wrap items-end gap-3">
+                <button id="dbExportBtn" type="button" class="rounded-lg border border-sky-700 px-4 py-2 text-sm text-sky-200 hover:bg-sky-900/20">DB exportieren</button>
+                <div class="flex items-center gap-2">
+                  <input id="dbImportFile" type="file" accept=".db,.sqlite,.sqlite3" class="hidden" />
+                  <button id="dbChooseFileBtn" type="button" class="rounded-lg border border-line px-4 py-2 text-sm hover:bg-panel">Datei wählen</button>
+                  <span id="dbImportFileName" class="max-w-[220px] truncate text-sm text-slate-300">Keine Datei gewählt</span>
+                </div>
+                <button id="dbImportBtn" type="submit" class="rounded-lg border border-emerald-700 px-4 py-2 text-sm text-emerald-200 hover:bg-emerald-900/20">Import starten</button>
+              </div>
+              <p class="mt-2 text-xs text-slate-400">Beim Import wird die aktuelle DB ersetzt. Vorher am besten Export ziehen.</p>
+            </form>
+
             <form id="usersForm" class="mt-6 rounded-xl border border-line bg-panelSoft p-4">
               <h3 class="mb-3 text-lg font-semibold">User Einstellungen</h3>
               <div class="grid gap-3 md:grid-cols-2">
@@ -200,7 +217,7 @@
       </div>
     </div>
 
-    <footer class="border-t border-line/50 bg-black/25 px-4 py-4 text-center text-xs text-slate-300">
+    <footer class="relative z-10 mt-auto shrink-0 border-t border-line/30 bg-slate-950/65 px-4 py-4 text-center text-xs text-slate-300 backdrop-blur-sm">
       GastroDash™ - Live Bestellungen • Verwaltung • Statistics | Copyright von Citizen.P®
       <a href="https://citizenp.me/coding" target="_blank" rel="noreferrer" class="ml-1 text-sky-300 underline">citizenp.me/coding</a>
     </footer>
@@ -265,6 +282,7 @@
         ["productId", "productName", "productCategoryCustom", "productPrice", "productImageUrl", "productImageUpload"].forEach((id) => {
           document.getElementById(id).value = "";
         });
+        document.getElementById("productImageFileName").textContent = "Keine Datei gewählt";
         document.getElementById("productCategorySelect").value = "";
         document.getElementById("productOrderLimit").value = 10;
         document.getElementById("productSortOrder").value = 0;
@@ -337,7 +355,7 @@
           tr.innerHTML = `
             <td class="px-3 py-2 font-semibold">${p.name}</td>
             <td class="px-3 py-2">${p.category || "-"}</td>
-            <td class="px-3 py-2">${p.imageUrl ? `<img src="${p.imageUrl}" class="h-12 w-12 rounded-lg border border-line object-cover" />` : "-"}</td>
+            <td class="px-3 py-2">${p.imageUrl ? `<img src="${p.imageUrl}" class="h-12 w-12 rounded-md border border-line object-cover" />` : "-"}</td>
             <td class="px-3 py-2">${p.orderLimit ?? "-"}</td>
             <td class="px-3 py-2"><div class="flex flex-wrap gap-1">${statusBadges}</div></td>
             <td class="px-3 py-2">
@@ -485,6 +503,10 @@
         const r = await fetch("/api/admin/me");
         const d = await r.json();
         const ok = r.ok && d.authenticated;
+        if (ok && d.role === "MANAGER") {
+          window.location.href = "/admin/live";
+          return;
+        }
         loginSection.classList.toggle("hidden", ok);
         adminSection.classList.toggle("hidden", !ok);
         if (!ok) return;
@@ -506,6 +528,10 @@
         const d = await r.json();
         if (!r.ok) return notice(d.error || "Login fehlgeschlagen", false);
         notice("Login erfolgreich", true);
+        if (d.role === "MANAGER") {
+          window.location.href = "/admin/live";
+          return;
+        }
         checkAuth();
       };
 
@@ -541,6 +567,13 @@
       };
 
       document.getElementById("resetProductBtn").onclick = resetProductForm;
+      document.getElementById("productChooseFileBtn").onclick = () => {
+        document.getElementById("productImageUpload").click();
+      };
+      document.getElementById("productImageUpload").onchange = (e) => {
+        const file = e.target.files?.[0];
+        document.getElementById("productImageFileName").textContent = file ? file.name : "Keine Datei gewählt";
+      };
 
       document.getElementById("settingsForm").onsubmit = async (e) => {
         e.preventDefault();
@@ -604,6 +637,62 @@
           notice("Archiv wurde gelöscht.", true);
           loadStats();
         });
+      };
+
+      document.getElementById("dbToolsForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById("dbImportFile");
+        const file = fileInput.files[0];
+        if (!file) {
+          notice("Bitte zuerst eine DB-Datei auswählen.", false);
+          return;
+        }
+        showConfirm("Datenbank importieren", "Willst du die aktuelle DB wirklich durch diese Datei ersetzen?", async () => {
+          const fd = new FormData();
+          fd.append("database", file);
+          const r = await fetch("/api/admin/db/import", { method: "POST", body: fd });
+          const d = await r.json();
+          if (!r.ok) return notice(d.error || "DB-Import fehlgeschlagen", false);
+          fileInput.value = "";
+          document.getElementById("dbImportFileName").textContent = "Keine Datei gewählt";
+          notice("DB-Import erfolgreich. Ansichten werden neu geladen.", true);
+          await Promise.all([loadSettings(), loadProducts(), loadCategories(), loadStats()]);
+        });
+      };
+
+      document.getElementById("dbChooseFileBtn").onclick = () => {
+        document.getElementById("dbImportFile").click();
+      };
+
+      document.getElementById("dbImportFile").onchange = (e) => {
+        const file = e.target.files?.[0];
+        document.getElementById("dbImportFileName").textContent = file ? file.name : "Keine Datei gewählt";
+      };
+
+      document.getElementById("dbExportBtn").onclick = async () => {
+        const r = await fetch("/api/admin/db/export");
+        if (!r.ok) {
+          let message = "DB-Export fehlgeschlagen";
+          try {
+            const d = await r.json();
+            message = d.error || message;
+          } catch {}
+          notice(message, false);
+          return;
+        }
+        const blob = await r.blob();
+        const disposition = r.headers.get("content-disposition") || "";
+        const matched = disposition.match(/filename=\"?([^\";]+)\"?/i);
+        const filename = matched?.[1] || `gastrodash-backup-${Date.now()}.db`;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        notice("DB-Export erfolgreich gestartet.", true);
       };
 
       document.getElementById("confirmCancelBtn").onclick = closeConfirm;

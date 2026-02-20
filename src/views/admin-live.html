@@ -23,16 +23,7 @@
     <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_10%_10%,#1f2937_0%,transparent_45%),radial-gradient(circle_at_90%_20%,#7c2d12_0%,transparent_35%),linear-gradient(#020617,#0f172a)]"></div>
 
     <main class="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">
-      <section id="loginSection" class="mx-auto max-w-md rounded-xl border border-line bg-panel p-6">
-        <h1 class="mb-4 text-2xl font-semibold">Live Board Login</h1>
-        <form id="liveLoginForm" class="space-y-3">
-          <input id="liveUsername" class="w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Benutzername" required />
-          <input id="livePassword" type="password" class="w-full rounded-lg border border-line bg-panelSoft px-3 py-2" placeholder="Passwort" required />
-          <button class="w-full rounded-lg bg-accent px-4 py-2 font-semibold">Anmelden</button>
-        </form>
-      </section>
-
-      <section id="liveSection" class="hidden">
+      <section id="liveSection">
         <header class="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <p id="liveSiteName" class="text-xs uppercase tracking-[0.2em] text-sky-300">GastroDash</p>
@@ -114,7 +105,6 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
       const socket = io();
-      const loginSection = document.getElementById("loginSection");
       const liveSection = document.getElementById("liveSection");
       const messageEl = document.getElementById("message");
       let deleteOrderId = null;
@@ -326,13 +316,11 @@
       }
 
       function showLoggedOut() {
-        loginSection.classList.remove("hidden");
-        liveSection.classList.add("hidden");
+        window.location.href = "/admin";
       }
 
       function showLoggedIn(role) {
         liveRole = role;
-        loginSection.classList.add("hidden");
         liveSection.classList.remove("hidden");
         document.getElementById("adminBackLink").classList.toggle("hidden", role !== "ADMIN");
       }
@@ -348,27 +336,8 @@
         await Promise.all([loadConfig(), loadOrders(), loadProducts()]);
       }
 
-      document.getElementById("liveLoginForm").onsubmit = async (event) => {
-        event.preventDefault();
-        const response = await fetch("/api/live/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: document.getElementById("liveUsername").value,
-            password: document.getElementById("livePassword").value
-          })
-        });
-        const data = await response.json();
-        if (!response.ok) {
-          alert(data.error || "Login fehlgeschlagen");
-          return;
-        }
-        showLoggedIn(data.role);
-        await Promise.all([loadConfig(), loadOrders(), loadProducts()]);
-      };
-
       document.getElementById("liveLogoutBtn").onclick = async () => {
-        await fetch("/api/live/logout", { method: "POST" });
+        await fetch("/api/admin/logout", { method: "POST" });
         showLoggedOut();
       };
 

@@ -182,7 +182,7 @@
           const soldOut = product.isSoldOut || !product.isActive;
           const priceText = product.showPrice && product.price != null ? `${Number(product.price).toFixed(2)} EUR` : "";
           const image = product.imageUrl
-            ? `<img src="${product.imageUrl}" alt="${product.name}" class="mb-3 h-36 w-full rounded-lg object-cover" onerror="this.style.display='none'" />`
+            ? `<img src="${product.imageUrl}" alt="${product.name}" class="mb-3 h-36 w-full rounded-md object-cover" onerror="this.style.display='none'" />`
             : "";
 
           const card = document.createElement("div");
