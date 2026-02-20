@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Anmelden - GastroDash</title>
+    <title>GastroBar bestellen - GastroDash</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -30,8 +30,8 @@
     <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-10 md:px-8">
       <header class="mb-8">
         <p class="text-sm uppercase tracking-[0.3em] text-orange-300" id="pageName">GastroDash</p>
-        <h1 class="mt-2 text-4xl font-bold" id="pageTitle">Anmelden</h1>
-        <p class="mt-2 text-sm text-slate-300" id="pageDescription">Digitales Bestellsystem</p>
+        <h1 class="mt-2 text-4xl font-bold" id="pageTitle">GastroBar bestellen</h1>
+        <p class="mt-2 text-sm text-slate-300" id="pageDescription">Einfach bestellen was sie möchten bei der GastroBar.</p>
       </header>
 
       <div id="message" class="mb-4 hidden rounded-lg px-4 py-3 text-sm"></div>
@@ -253,8 +253,8 @@
         tableCount = data.tableCount;
         maxOrderQuantity = data.maxOrderQuantity || 99;
         pageNameEl.textContent = data.siteName || "GastroDash";
-        pageTitleEl.textContent = data.siteTitle || "Anmelden";
-        pageDescriptionEl.textContent = data.siteDescription || "Digitales Bestellsystem";
+        pageTitleEl.textContent = data.siteTitle || "GastroBar bestellen";
+        pageDescriptionEl.textContent = data.siteDescription || "Einfach bestellen was sie möchten bei der GastroBar.";
         allProducts = data.products || [];
         renderTables();
         applyProductFilters();

@@ -219,8 +219,8 @@ async function ensureDefaults() {
       id: 1,
       tableCount: 20,
       siteName: "GastroDash",
-      siteTitle: "Anmelden",
-      siteDescription: "Digitales Bestellsystem",
+      siteTitle: "GastroBar bestellen",
+      siteDescription: "Einfach bestellen was sie möchten bei der GastroBar.",
       productLimit: 200
     }
   });
@@ -320,8 +320,8 @@ app.get("/api/public/config", async (req, res) => {
   res.json({
     tableCount: settings?.tableCount ?? 20,
     siteName: settings?.siteName || "GastroDash",
-    siteTitle: settings?.siteTitle || "Anmelden",
-    siteDescription: settings?.siteDescription || "Digitales Bestellsystem",
+    siteTitle: settings?.siteTitle || "GastroBar bestellen",
+    siteDescription: settings?.siteDescription || "Einfach bestellen was sie möchten bei der GastroBar.",
     maxOrderQuantity: MAX_ORDER_QUANTITY,
     products
   });
@@ -484,8 +484,8 @@ app.get("/api/live/config", requireBoard, async (req, res) => {
   res.json({
     tableCount: settings?.tableCount ?? 20,
     siteName: settings?.siteName || "GastroDash",
-    siteTitle: settings?.siteTitle || "Anmelden",
-    siteDescription: settings?.siteDescription || "Digitales Bestellsystem"
+    siteTitle: settings?.siteTitle || "GastroBar bestellen",
+    siteDescription: settings?.siteDescription || "Einfach bestellen was sie möchten bei der GastroBar."
   });
 });
 

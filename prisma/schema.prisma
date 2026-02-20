@@ -29,8 +29,8 @@ model Settings {
   id                       Int      @id
   tableCount               Int      @default(20)
   siteName                 String   @default("GastroDash")
-  siteTitle                String   @default("Anmelden")
-  siteDescription          String   @default("Digitales Bestellsystem")
+  siteTitle                String   @default("GastroBar bestellen")
+  siteDescription          String   @default("Einfach bestellen was sie möchten bei der GastroBar.")
   productLimit             Int      @default(200)
   archiveDeletePasswordHash String?
   updatedAt                DateTime @updatedAt
