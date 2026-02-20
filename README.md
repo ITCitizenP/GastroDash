@@ -106,10 +106,12 @@ GastroDash bietet eine öffentliche Bestellseite, ein Admin-Panel, eine Live-Ver
 npm install
 ```
 
-2. ENV-Datei anlegen
+2. ENV-Datei anlegen (kopieren/umbenennen)
 ```bash
 copy .env.example .env
 ```
+
+Danach die `.env` öffnen und eigene, echte Werte eintragen (Benutzer, Passwörter, Ports etc.).
 
 3. Prisma Client generieren
 ```bash
@@ -148,11 +150,19 @@ Siehe `.env.example`:
 - `DATABASE_URL` SQLite-Pfad (z. B. `file:./dev.db`)
 - `SERVER_PORT` bevorzugter Server-Port
 - `PORT` Fallback-Server-Port (z. B. für Pterodactyl)
-- `SESSION_SECRET` Session-Secret
+- `SESSION_SECRET` Session-Secret (optional: leer lassen, dann wird beim Start ein zufälliger temporärer Secret erzeugt)
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD`
 - `MANAGER_USERNAME` / `MANAGER_PASSWORD`
 - `ARCHIVE_DELETE_PASSWORD` Fallback für Archiv-Löschpasswort
 - `MAX_ORDER_QUANTITY` maximale Menge pro Produktposition bei Bestellung
+
+## Standardzugänge (Default)
+Wenn nichts anderes in `.env` gesetzt ist:
+
+- `ADMIN_USERNAME="gastro-admin"`
+- `ADMIN_PASSWORD="bar-123"`
+- `MANAGER_USERNAME="gastro"`
+- `MANAGER_PASSWORD="bar-123"`
 
 ## NPM Skripte
 - `npm run dev` Start mit `nodemon`

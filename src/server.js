@@ -21,10 +21,10 @@ const PORT = Number(process.env.SERVER_PORT || process.env.PORT) || 3000;
 const DATABASE_URL = process.env.DATABASE_URL || "file:./dev.db";
 const PRISMA_DIR = path.join(__dirname, "../prisma");
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(48).toString("hex");
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
-const MANAGER_USERNAME = process.env.MANAGER_USERNAME || "manager";
-const MANAGER_PASSWORD = process.env.MANAGER_PASSWORD || "manager123";
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "gastro-admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "bar-123";
+const MANAGER_USERNAME = process.env.MANAGER_USERNAME || "gastro";
+const MANAGER_PASSWORD = process.env.MANAGER_PASSWORD || "bar-123";
 const LEGACY_ARCHIVE_DELETE_PASSWORD = process.env.ARCHIVE_DELETE_PASSWORD || "archive-delete";
 const MAX_ORDER_QUANTITY = Number(process.env.MAX_ORDER_QUANTITY) || 99;
 
